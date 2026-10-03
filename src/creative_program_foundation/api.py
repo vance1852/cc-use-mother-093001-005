@@ -9,6 +9,8 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from .errors import DomainError, ValidationError
+from .review_api import route_review
+from .review_service import ReviewService
 from .service import DomainService
 from .storage import Database
 
@@ -22,6 +24,11 @@ def route(service: DomainService, method: str, path: str, body: dict[str, Any] |
     parsed = urlparse(path)
     actor_id = headers.get("X-Actor-Id", "")
     try:
+        if parsed.path.startswith("/review"):
+            result = route_review(service, method, path, body, headers)
+            if result is None:
+                return 404, {"error": "route_not_found", "message": "接口不存在"}
+            return result
         if method == "GET" and parsed.path == "/health":
             valid, count = service.verify_audit()
             return 200, {"status": "ok", "audit_valid": valid, "audit_events": count}
@@ -99,7 +106,7 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=8080)
     args = parser.parse_args()
     database = Database(args.database)
-    Handler.service = DomainService(database)
+    Handler.service = ReviewService(database)
     server = ThreadingHTTPServer((args.host, args.port), Handler)
     try:
         server.serve_forever()

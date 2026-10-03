@@ -34,3 +34,12 @@ class FixedClock:
         """返回固定的 UTC 时间。"""
 
         return self._value
+
+
+def parse_instant(value: str) -> datetime:
+    """把带时区的 ISO 文本解析为 UTC 时间。"""
+
+    parsed = datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        raise ValueError("时间必须包含时区")
+    return parsed.astimezone(timezone.utc)
